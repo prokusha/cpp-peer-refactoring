@@ -11,6 +11,21 @@ struct QueryParams {
     string name_filter;
 };
 
+DBHandler ConnectDB(const DBSettings& dbset) {
+    DBConnector connector(dbset.db_allow_exceptions, dbset.db_log_level);
+    DBHandler db;
+
+    if (dbset.db_name.starts_with("tmp."s)) {
+        db = connector.ConnectTmp(dbset.db_name, dbset.db_connection_timeout);
+    } else {
+        db = connector.Connect(dbset.db_name, dbset.db_connection_timeout);
+    }
+    if (!dbset.db_allow_exceptions && !db.IsOK()) {
+        return {};
+    }
+    return db;
+}
+
 string QueryStr(const DBHandler& db, const QueryParams querypar) {
     ostringstream query_str;
 
@@ -23,17 +38,7 @@ string QueryStr(const DBHandler& db, const QueryParams querypar) {
 }
 
 vector<Person> LoadPersons(DBSettings dbset, QueryParams querypar) {
-    DBConnector connector(dbset.db_allow_exceptions, dbset.db_log_level);
-    DBHandler db;
-
-    if (dbset.db_name.starts_with("tmp."s)) {
-        db = connector.ConnectTmp(dbset.db_name, dbset.db_connection_timeout);
-    } else {
-        db = connector.Connect(dbset.db_name, dbset.db_connection_timeout);
-    }
-    if (!dbset.db_allow_exceptions && !db.IsOK()) {
-        return {};
-    }
+    DBHandler db = ConnectDB(dbset);
 
     DBQuery query(QueryStr(db, querypar));
 
